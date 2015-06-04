@@ -1,0 +1,4 @@
+[package]
+name = "scheme-interp"
+version = "0.1.0"
+authors = ["Zack Owens <zowens2009@gmail.com>"]
