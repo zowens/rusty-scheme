@@ -125,25 +125,6 @@ mod env {
         }
     }
 
-    /*impl Node {
-        pub fn find(&self, var: &str) -> Option<Value> {
-            if &self.car.0 == var {
-                Some(self.car.1.clone())
-            } else {
-                self.cdr.as_ref().and_then(|b| b.find(var))
-            }
-        }
-    }*/
-
-    /*pub fn extend_env(n: String, v: Value, d: Env) -> Env {
-        Some(Rc::new(Node { 
-            car: (n, v),
-            cdr: d
-        }))
-    }*/
-
-
-
     pub fn empty_env() -> Env {
         Env { env: None }
     }
