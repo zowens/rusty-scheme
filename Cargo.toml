@@ -2,3 +2,14 @@
 name = "scheme-interp"
 version = "0.1.0"
 authors = ["Zack Owens <zowens2009@gmail.com>"]
+
+[dependencies]
+parser-combinators = "0.5.0"
+
+[profile.release]
+opt-level = 3
+debug = false
+rpath = false
+lto = false
+debug-assertions = false
+codegen-units = 4
