@@ -9,6 +9,7 @@ pub enum Token {
     LParen,
     RParen,
     Lambda,
+    Let,
     IsZero,
     If,
     True,
@@ -30,6 +31,7 @@ lexer! {
     r#"#[fF]"# => (Token::False, text),
     r#"zero?"# => (Token::IsZero, text),
     r#"lambda"# => (Token::Lambda, text),
+    r#"let"# => (Token::Let, text),
     r#"if"# => (Token::If, text),
 
     // Reserved Operators
@@ -119,6 +121,7 @@ fn test_lex() {
         ("(lambda (x) x)", vec![Token::LParen, Token::Lambda, Token::LParen, Token::Ident("x".to_string()), Token::RParen, Token::Ident("x".to_string()), Token::RParen]),
         ("(if (zero? 1) 5 6)", vec![Token::LParen, Token::If, Token::LParen, Token::IsZero, Token::Integer(1), Token::RParen, Token::Integer(5), Token::Integer(6), Token::RParen]),
         ("(if (zero? 1) #t #f)", vec![Token::LParen, Token::If, Token::LParen, Token::IsZero, Token::Integer(1), Token::RParen, Token::True, Token::False, Token::RParen]),
+        ("(let ((x 1)) x)", vec![Token::LParen, Token::Let, Token::LParen, Token::LParen, Token::Ident("x".to_string()), Token::Integer(1), Token::RParen, Token::RParen, Token::Ident("x".to_string()), Token::RParen]),
     ];
 
     for tc in tests.iter() {

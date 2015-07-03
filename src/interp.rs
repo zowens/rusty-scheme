@@ -49,6 +49,10 @@ fn eval<'a, 'b>(exp: Expr, env: env::Env) -> Value {
             (Value::Closure(Closure { arg: a, body: b, env: e }), v) => eval(b, e.extend_env(a, v)),
             _ => Value::Bottom,
         },
+        Expr::Let(var, binding, body) => {
+            let bind_val = eval(*binding, env.clone());
+            eval(*body, env.extend_env(var, bind_val))  
+        },
         //_ => Value::Bottom,
     }
 }
@@ -73,6 +77,7 @@ fn test_interp() {
         ("#f", Value::Atom(Atom::Boolean(false))),
         ("(if (zero? 0) 5 6)", Value::Atom(Atom::Int(5))),
         ("(if (zero? 1) 5 6)", Value::Atom(Atom::Int(6))),
+        ("(let ((x 5)) (+ 1 x))", Value::Atom(Atom::Int(6))),
         ("((lambda (x) x) 5)", Value::Atom(Atom::Int(5))),
         ("((lambda (x) (+ x x)) 10)", Value::Atom(Atom::Int(20))),
         ("(((lambda (f) (lambda (g) (f (g 5)))) (lambda (x) (+ x 10))) (lambda (y) (- y 1)))", Value::Atom(Atom::Int(14))),

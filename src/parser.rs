@@ -29,6 +29,7 @@ parser! {
 
     sexp: Expr {
         LParen Lambda LParen Ident(v) RParen exp[body] RParen => Expr::Lambda(v, Box::new(body)),
+        LParen Let LParen LParen Ident(v) exp[bind] RParen RParen exp[body] RParen => Expr::Let(v, Box::new(bind), Box::new(body)),
         LParen If exp[t] exp[c] exp[a] RParen => Expr::If(Box::new(t), Box::new(c), Box::new(a)),
         LParen Plus exp[a] exp[b] RParen => Expr::BinOp(BinOp::Plus, Box::new(a), Box::new(b)),
         LParen Minus exp[a] exp[b] RParen => Expr::BinOp(BinOp::Sub, Box::new(a), Box::new(b)),
@@ -82,6 +83,12 @@ fn test_parser() {
               Box::new(Expr::Var("x".to_string())),
               Box::new(Expr::Var("y".to_string())),
               Box::new(Expr::Var("z".to_string())))),
+
+        ("(let ((x 5)) x)",
+          Expr::Let(
+              "x".to_string(), 
+              Box::new(Expr::Atom(Atom::Int(5))),
+              Box::new(Expr::Var("x".to_string())))),
     ];
 
     for tc in tests {
