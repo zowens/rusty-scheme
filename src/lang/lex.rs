@@ -26,14 +26,15 @@ lexer! {
     r#";[^\n]*"# => (Token::Comment, text), // Line
 
     // Reserved Keywords
-    r#"#t"# => (Token::True, text),
-    r#"#f"# => (Token::False, text),
+    r#"#[tT]"# => (Token::True, text),
+    r#"#[fF]"# => (Token::False, text),
     r#"zero?"# => (Token::IsZero, text),
     r#"lambda"# => (Token::Lambda, text),
     r#"if"# => (Token::If, text),
 
     // Reserved Operators
     r#"\+"# => (Token::Plus, text),
+    // TODO: handle negation
     r#"-"# => (Token::Minus, text),
     r#"\*"# => (Token::Star, text),
     r#"/"# => (Token::Slash, text),
@@ -50,8 +51,14 @@ lexer! {
             panic!("integer {} is out of range", text)
         }, text)
     },
+
     // Identifiers
-    r#"[a-zA-Z_][a-zA-Z0-9_]*"# => (Token::Ident(text.to_owned()), text),
+    //       <special initial> → ! ∣ $ ∣ % ∣ & ∣ * ∣ / ∣ : ∣ < ∣ = ∣ > ∣ ? ∣ ^ ∣ _ ∣ ~
+    //       <initial> → <constituent> ∣ <special initial> ∣ <inline hex escape>
+    //       <subsequent> → <initial> ∣ <digit> ∣ <any character whose category is Nd, Mc, or Me> ∣ <special subsequent>
+    //       <special subsequent> → + ∣ - ∣ . ∣ @
+    //       <identifier> →  <initial> <subsequent>* ∣ <peculiar identifier>
+    r#"[a-zA-Z_!$%&*/:<=>?^~][a-zA-Z0-9_!$%&*/:<=>?^~+\-.@]*"# => (Token::Ident(text.to_owned()), text),
 
     r#"."# => panic!("unexpected character: {}", text),
 }
