@@ -1,3 +1,5 @@
+#![feature(plugin, subslice_offset)]
+#![plugin(plex)]
 extern crate parser_combinators;
 
 mod lang;

@@ -31,3 +31,4 @@ pub enum Value {
 
 pub mod parser;
 pub mod interp;
+pub mod lex;
