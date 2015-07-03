@@ -1,3 +1,6 @@
+#![feature(plugin, subslice_offset)]
+#![plugin(plex)]
+
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Expr {
     Atom(Atom),

@@ -3,13 +3,15 @@ name = "scheme-interp"
 version = "0.1.0"
 authors = ["Zack Owens <zowens2009@gmail.com>"]
 
+[lib]
+
+name = "scheme"
+plugin = true
+
+[[bin]]
+
+name = "schemei"
+doc = false
+
 [dependencies.plex]
 git = "https://github.com/goffrie/plex"
-
-[profile.release]
-opt-level = 3
-debug = false
-rpath = false
-lto = false
-debug-assertions = false
-codegen-units = 4
