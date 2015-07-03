@@ -49,7 +49,7 @@ pub fn parse<I: Iterator<Item=(Token, Span)>>(i: I) -> Result<Expr, (Option<(Tok
 }
 
 #[test]
-pub fn test_parser() {
+fn test_parser() {
     let tests = vec![
         ("5", Expr::Atom(Atom::Int(5))),
         ("12345", Expr::Atom(Atom::Int(12345i32))),

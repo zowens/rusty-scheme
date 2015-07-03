@@ -58,7 +58,7 @@ pub fn interp(exp: Expr) -> Value {
     eval(exp, e)
 }
 
-/*
+
 #[test]
 fn test_interp() {
     let exprs = vec![
@@ -74,14 +74,14 @@ fn test_interp() {
         ("(if (zero? 0) 5 6)", Value::Atom(Atom::Int(5))),
         ("(if (zero? 1) 5 6)", Value::Atom(Atom::Int(6))),
         ("((lambda (x) x) 5)", Value::Atom(Atom::Int(5))),
-        // TODO: more tests
+        ("((lambda (x) (+ x x)) 10)", Value::Atom(Atom::Int(20))),
+        ("(((lambda (f) (lambda (g) (f (g 5)))) (lambda (x) (+ x 10))) (lambda (y) (- y 1)))", Value::Atom(Atom::Int(14))),
     ];
 
     let parse_str = |s| { 
-        match super::parser::parse(s) {
-            Ok((v, "")) => Ok(v),
-            Err(e) => Err(format!("err parsing {}, err={}", s, e)),
-            _ => Err(format!("err parsing {}, some left", s))
+        match super::parser::parse(super::lex::Lexer::new(s)) {
+            Ok(e) => Ok(e),
+            Err(e) => Err(format!("err parsing {}, err={:?}", s, e)),
         }
     };
 
@@ -89,7 +89,6 @@ fn test_interp() {
         assert_eq!(parse_str(p.0).map(|e| interp(e)), Ok(p.1));
     }
 }
-*/
 
 mod env {
     use std::rc::Rc;

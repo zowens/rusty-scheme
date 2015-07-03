@@ -110,7 +110,7 @@ impl<'a> Iterator for Lexer<'a> {
 }
 
 #[test]
-pub fn test_lex() {
+fn test_lex() {
     let tests = vec![
         ("(+ 5 6)", vec![Token::LParen, Token::Plus, Token::Integer(5), Token::Integer(6), Token::RParen]),
         ("      (+     5      6    )  ; comment      ", vec![Token::LParen, Token::Plus, Token::Integer(5), Token::Integer(6), Token::RParen]),
