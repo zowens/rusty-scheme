@@ -102,7 +102,7 @@ fn test_interp() {
     };
 
     for p in exprs {
-        assert_eq!(parse_str(p.0).map(|e| interp(e)), Ok(p.1));
+        assert_eq!(parse_str(p.0).as_ref().map(|e| interp(e)), Ok(p.1));
     }
 }
 
@@ -151,13 +151,13 @@ mod env {
         use super::super::Atom;
 
         let e = empty_env();
-        let e = e.extend_env("a", Value::Atom(Atom::Int(5)));
-        let e = e.extend_env("b", Value::Atom(Atom::Int(6)));
-        let e = e.extend_env("a", Value::Atom(Atom::Int(1)));
+        let e = e.extend_env("a", Value_::Atom(Atom::Int(5)));
+        let e = e.extend_env("b", Value_::Atom(Atom::Int(6)));
+        let e = e.extend_env("a", Value_::Atom(Atom::Int(1)));
 
         let a = e.find("a");
-        assert_eq!(a, Some(Value::Atom(Atom::Int(1))));
-        assert_eq!(e.find("b"), Some(Value::Atom(Atom::Int(6))));
+        assert_eq!(a, Some(Value_::Atom(Atom::Int(1))));
+        assert_eq!(e.find("b"), Some(Value_::Atom(Atom::Int(6))));
         assert_eq!(e.find("c"), None);
     }
 }
