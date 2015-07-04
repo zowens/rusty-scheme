@@ -29,7 +29,7 @@ pub enum Atom {
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Value {
     Atom(Atom),
-    Closure(interp::Closure),
+    Closure,
     Bottom,
 }
 
