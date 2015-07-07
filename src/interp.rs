@@ -1,36 +1,26 @@
 use super::*;
-use std::fmt;
+use std::rc::Rc;
 extern crate std;
 
-#[derive(Eq,Clone,PartialEq)]
-pub struct Closure<'a> {
-    arg: &'a str,
-    body: &'a Expr,
-    env: env::Env<'a>,
-}
-
-impl<'a> fmt::Debug for Closure<'a> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "#<closure>")
-    }
+#[derive(Debug, Clone, Eq, PartialEq)]
+struct Closure<'a> {
+    arg: &'a str, 
+    body: &'a Expr, 
+    env: Env<'a>,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 enum Value_<'a> {
     Atom(Atom),
-    Closure(interp::Closure<'a>),
+    Closure(Closure<'a>),
     Bottom,
 }
 
-fn eval<'a>(exp: &'a Expr, env: env::Env<'a>) -> Value_<'a> {
+fn eval<'a>(exp: &'a Expr, env: Env<'a>) -> Value_<'a> {
     match exp {
         &Expr::Atom(ref v) => Value_::Atom(v.clone()),
-        &Expr::Var(ref n) => env.find(n).unwrap_or(Value_::Bottom),
-        &Expr::Lambda(ref arg, ref body) => Value_::Closure(Closure {
-            arg: arg, 
-            body: body,
-            env: env,
-        }),
+        &Expr::Var(ref n) => env.find(n).expect(&format!("unexpected var: {}", n)),
+        &Expr::Lambda(ref arg, ref body) => Value_::Closure(Closure { arg: arg, body: body, env: env }),
         &Expr::IsZero(ref body) => match eval(body, env.clone()) {
             Value_::Atom(Atom::Int(v)) => Value_::Atom(Atom::Boolean(v == 0)),
             _ => Value_::Bottom,
@@ -53,19 +43,23 @@ fn eval<'a>(exp: &'a Expr, env: env::Env<'a>) -> Value_<'a> {
             _ => Value_::Bottom,
         },
         &Expr::App(ref rator, ref rand) => match (eval(rator, env.clone()), eval(rand, env.clone())) {
-            (Value_::Closure(Closure { arg: a, body: b, env: e }), v) => eval(b, e.extend_env(a, v)),
+            (Value_::Closure(c), v) => eval(c.body, c.env.extend_env(c.arg, v)),
             _ => Value_::Bottom,
         },
         &Expr::Let(ref var, ref binding, ref body) => {
             let bind_val = eval(binding, env.clone());
             eval(body, env.extend_env(var, bind_val))  
         },
+        &Expr::Letrec(ref var, ref binding, ref body) => match eval(binding, env.clone()) {
+            Value_::Closure(c) => eval(body, env.extend_env_rec(var, c.clone())),
+            v => eval(body, env.extend_env(var, v)),
+        },
         //_ => Value_::Bottom,
     }
 }
 
 pub fn interp<'a>(exp: &'a Expr) -> Value {
-    let e = env::empty_env();
+    let e = empty_env();
     match eval(exp, e) {
         Value_::Atom(v) => Value::Atom(v),
         Value_::Closure(_) => Value::Closure,
@@ -92,6 +86,8 @@ fn test_interp() {
         ("((lambda (x) x) 5)", Value::Atom(Atom::Int(5))),
         ("((lambda (x) (+ x x)) 10)", Value::Atom(Atom::Int(20))),
         ("(((lambda (f) (lambda (g) (f (g 5)))) (lambda (x) (+ x 10))) (lambda (y) (- y 1)))", Value::Atom(Atom::Int(14))),
+        ("(letrec ((fact (lambda (x) (if (zero? x) 1 (* x (fact (- x 1))))))) (fact 5))", Value::Atom(Atom::Int(120))),
+        ("(letrec ((x 5)) x)", Value::Atom(Atom::Int(5))),
     ];
 
     let parse_str = |s| { 
@@ -106,58 +102,72 @@ fn test_interp() {
     }
 }
 
-mod env {
-    use std::rc::Rc;
-    use super::Value_;
+#[derive(Debug, Eq, PartialEq, Clone)]
+enum Env_<'a> {
+    Empty,
+    ExtendEnv(&'a str, Value_<'a>, Rc<Env_<'a>>),
+    ExtendEnvRec(&'a str, Closure<'a>, Rc<Env_<'a>>),
+}
 
-    #[derive(Debug, Eq, PartialEq)]
-    struct Node<'a> {
-        car: (&'a str, Value_<'a>),
-        cdr: Env<'a>,
+#[derive(Debug, Eq, PartialEq, Clone)]
+struct Env<'a> {
+    e_: Rc<Env_<'a>>,
+}
+
+impl<'a> Env<'a> {
+    pub fn extend_env(&self, n: &'a str, v: Value_<'a>) -> Env<'a> {
+        Env {
+            e_: Rc::new(Env_::ExtendEnv(n, v, self.e_.clone())),
+        }
     }
 
-    #[derive(Debug, Eq, PartialEq, Clone)]
-    pub struct Env<'a> {
-        env: Option<Rc<Node<'a>>>,
+    pub fn extend_env_rec(&self, n: &'a str, c: Closure<'a>) -> Env<'a> {
+        Env {
+            e_: Rc::new(Env_::ExtendEnvRec(n, c, self.e_.clone())),
+        }
     }
 
-    impl<'a> Env<'a> {
-        pub fn extend_env(&self, n: &'a str, v: Value_<'a>) -> Env<'a> {
-            Env {
-                env: Some(Rc::new(Node {
-                    car: (n, v),
-                    cdr: self.clone(),
-                }))
+    fn find_inner(env: &Env_<'a>, n: &'a str) -> Option<Value_<'a>> {
+        match env {
+            &Env_::Empty => None,
+            &Env_::ExtendEnv(nm, ref v, ref next_env) => if nm == n {
+                Some(v.clone())
+            } else {
+                Env::find_inner(&next_env, n)
+            },
+            &Env_::ExtendEnvRec(nm, ref c, ref next_env) => if nm == n {
+                Some(Value_::Closure(
+                        Closure {
+                            arg: c.arg,
+                            body: c.body,
+                            env: c.env.extend_env_rec(nm, c.clone()),
+                        }))
+            } else {
+                Env::find_inner(&next_env, n)
             }
         }
-
-        pub fn find(&self, n: &str) -> Option<Value_<'a>> {
-            self.env.as_ref().and_then(|node| {
-                if node.car.0 == n {
-                    Some(node.car.1.clone())
-                } else {
-                    node.cdr.find(n)
-                }
-            })
-        }
     }
 
-    pub fn empty_env<'a>() -> Env<'a> {
-        Env { env: None }
+    pub fn find(&self, n: &'a str) -> Option<Value_<'a>> {
+        Env::find_inner(&self.e_, n)
     }
+}
 
-    #[test]
-    fn it_works() {
-        use super::super::Atom;
+fn empty_env<'a>() -> Env<'a> {
+    Env { e_: Rc::new(Env_::Empty) }
+}
 
-        let e = empty_env();
-        let e = e.extend_env("a", Value_::Atom(Atom::Int(5)));
-        let e = e.extend_env("b", Value_::Atom(Atom::Int(6)));
-        let e = e.extend_env("a", Value_::Atom(Atom::Int(1)));
+#[test]
+fn it_works() {
+    use super::Atom;
 
-        let a = e.find("a");
-        assert_eq!(a, Some(Value_::Atom(Atom::Int(1))));
-        assert_eq!(e.find("b"), Some(Value_::Atom(Atom::Int(6))));
-        assert_eq!(e.find("c"), None);
-    }
+    let e = empty_env();
+    let e = e.extend_env("a", Value_::Atom(Atom::Int(5)));
+    let e = e.extend_env("b", Value_::Atom(Atom::Int(6)));
+    let e = e.extend_env("a", Value_::Atom(Atom::Int(1)));
+
+    let a = e.find("a");
+    assert_eq!(a, Some(Value_::Atom(Atom::Int(1))));
+    assert_eq!(e.find("b"), Some(Value_::Atom(Atom::Int(6))));
+    assert_eq!(e.find("c"), None);
 }

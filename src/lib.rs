@@ -9,6 +9,7 @@ pub enum Expr {
     If(Box<Expr>, Box<Expr>, Box<Expr>),
     BinOp(BinOp, Box<Expr>, Box<Expr>),
     Let(String, Box<Expr>, Box<Expr>),
+    Letrec(String, Box<Expr>, Box<Expr>),
     Lambda(String, Box<Expr>),
     App(Box<Expr>, Box<Expr>),
 }
