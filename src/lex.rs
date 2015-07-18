@@ -17,6 +17,10 @@ pub enum Token {
     False,
     Whitespace,
     Comment,
+    Cons,
+    Car, 
+    Cdr,
+    Quote,
 }
 
 lexer! {
@@ -35,8 +39,12 @@ lexer! {
     r#"let"# => (Token::Let, text),
     r#"letrec"# => (Token::Letrec, text),
     r#"if"# => (Token::If, text),
+    r#"cons"# => (Token::Cons, text),
+    r#"car"# => (Token::Car, text),
+    r#"cdr"# => (Token::Cdr, text),
 
     // Reserved Operators
+    r#"'"# => (Token::Quote, text),
     r#"\+"# => (Token::Plus, text),
     // TODO: handle negation
     r#"-"# => (Token::Minus, text),
@@ -125,6 +133,8 @@ fn test_lex() {
         ("(if (zero? 1) #t #f)", vec![Token::LParen, Token::If, Token::LParen, Token::IsZero, Token::Integer(1), Token::RParen, Token::True, Token::False, Token::RParen]),
         ("(let ((x 1)) x)", vec![Token::LParen, Token::Let, Token::LParen, Token::LParen, Token::Ident("x".to_string()), Token::Integer(1), Token::RParen, Token::RParen, Token::Ident("x".to_string()), Token::RParen]),
         ("(letrec ((x (lambda(y) 5))) x)", vec![Token::LParen, Token::Letrec, Token::LParen, Token::LParen, Token::Ident("x".to_string()), Token::LParen, Token::Lambda, Token::LParen, Token::Ident("y".to_string()), Token::RParen, Token::Integer(5), Token::RParen, Token::RParen, Token::RParen, Token::Ident("x".to_string()), Token::RParen]),
+        ("(cons (car x) (cdr x))", vec![Token::LParen, Token::Cons, Token::LParen, Token::Car, Token::Ident("x".to_string()), Token::RParen, Token::LParen, Token::Cdr, Token::Ident("x".to_string()), Token::RParen, Token::RParen]),
+        ("'()", vec![Token::Quote, Token::LParen, Token::RParen]),
     ];
 
     for tc in tests.iter() {

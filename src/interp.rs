@@ -13,7 +13,19 @@ struct Closure<'a> {
 enum Value_<'a> {
     Atom(Atom),
     Closure(Closure<'a>),
+    Cons(Box<Value_<'a>>, Box<Value_<'a>>),
     Bottom,
+}
+
+impl<'a> Value_<'a> {
+    fn to_value(self) -> Value {
+        match self {
+            Value_::Atom(a) => Value::Atom(a),
+            Value_::Closure(_) => Value::Closure,
+            Value_::Cons(a, d) => Value::Cons(box a.to_value(), box d.to_value()),
+            Value_::Bottom => Value::Bottom,
+        }
+    }
 }
 
 fn eval<'a>(exp: &'a Expr, env: Env<'a>) -> Value_<'a> {
@@ -46,6 +58,15 @@ fn eval<'a>(exp: &'a Expr, env: Env<'a>) -> Value_<'a> {
             (Value_::Closure(c), v) => eval(c.body, c.env.extend_env(c.arg, v)),
             _ => Value_::Bottom,
         },
+        &Expr::Cons(ref a, ref d) => Value_::Cons(box eval(a, env.clone()), box eval(d, env.clone())),
+        &Expr::Car(ref c) => match eval(c, env.clone()) {
+            Value_::Cons(a, _) => *a,
+            _ => Value_::Bottom,
+        },
+        &Expr::Cdr(ref c) => match eval(c, env.clone()) {
+            Value_::Cons(_, d) => *d,
+            _ => Value_::Bottom,
+        },
         &Expr::Let(ref var, ref binding, ref body) => {
             let bind_val = eval(binding, env.clone());
             eval(body, env.extend_env(var, bind_val))  
@@ -60,11 +81,7 @@ fn eval<'a>(exp: &'a Expr, env: Env<'a>) -> Value_<'a> {
 
 pub fn interp<'a>(exp: &'a Expr) -> Value {
     let e = empty_env();
-    match eval(exp, e) {
-        Value_::Atom(v) => Value::Atom(v),
-        Value_::Closure(_) => Value::Closure,
-        Value_::Bottom => Value::Bottom,
-    }
+    eval(exp, e).to_value()
 }
 
 
@@ -88,6 +105,8 @@ fn test_interp() {
         ("(((lambda (f) (lambda (g) (f (g 5)))) (lambda (x) (+ x 10))) (lambda (y) (- y 1)))", Value::Atom(Atom::Int(14))),
         ("(letrec ((fact (lambda (x) (if (zero? x) 1 (* x (fact (- x 1))))))) (fact 5))", Value::Atom(Atom::Int(120))),
         ("(letrec ((x 5)) x)", Value::Atom(Atom::Int(5))),
+        ("(car (cons (+ 1 2) (+ 3 4)))", Value::Atom(Atom::Int(3))),
+        ("(cdr (cons (+ 1 2) (+ 3 4)))", Value::Atom(Atom::Int(7))),
     ];
 
     let parse_str = |s| { 
