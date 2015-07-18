@@ -13,7 +13,7 @@ source = "git+https://github.com/goffrie/lalr#00a6a4bec8095c725646baa746d9481208
 [[package]]
 name = "plex"
 version = "0.0.1"
-source = "git+https://github.com/goffrie/plex#5e230d5db4d8740b3a2f689c9c7c6fb88ac97ef4"
+source = "git+https://github.com/goffrie/plex#364ba66c1254f8b85539f2dd7df63dbb21502fed"
 dependencies = [
  "lalr 0.0.1 (git+https://github.com/goffrie/lalr)",
  "regex-dfa 0.0.1 (git+https://github.com/goffrie/regex-dfa)",
