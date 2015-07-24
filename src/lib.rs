@@ -1,6 +1,7 @@
 #![feature(plugin, subslice_offset, box_syntax)]
 #![plugin(plex)]
 use std::fmt;
+extern crate repl as repllib;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Expr {
@@ -58,6 +59,7 @@ impl fmt::Display for Value {
 pub mod parser;
 pub mod interp;
 pub mod lex;
+pub mod repl;
 
 #[test]
 fn test_value_display() {

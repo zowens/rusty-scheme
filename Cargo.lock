@@ -3,12 +3,32 @@ name = "scheme-interp"
 version = "0.1.0"
 dependencies = [
  "plex 0.0.1 (git+https://github.com/goffrie/plex)",
+ "repl 0.1.3-pre (git+https://github.com/rustyhorde/repl)",
+]
+
+[[package]]
+name = "bitflags"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "kernel32-sys"
+version = "0.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "winapi 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "winapi-build 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "lalr"
 version = "0.0.1"
 source = "git+https://github.com/goffrie/lalr#00a6a4bec8095c725646baa746d948120879aae9"
+
+[[package]]
+name = "libc"
+version = "0.1.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "plex"
@@ -23,4 +43,50 @@ dependencies = [
 name = "regex-dfa"
 version = "0.0.1"
 source = "git+https://github.com/goffrie/regex-dfa#cea8caf0c532a577ed7f6c2b91fd44c0a8cf6614"
+
+[[package]]
+name = "repl"
+version = "0.1.3-pre"
+source = "git+https://github.com/rustyhorde/repl#93f29aebb65be9349138903247721504c87b12ec"
+dependencies = [
+ "rl-sys 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "vergen 0.0.16 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "rl-sys"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "time"
+version = "0.1.31"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "kernel32-sys 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "winapi 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "vergen"
+version = "0.0.16"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "bitflags 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "time 0.1.31 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "winapi"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "winapi-build"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 

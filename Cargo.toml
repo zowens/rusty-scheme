@@ -15,3 +15,6 @@ doc = false
 
 [dependencies.plex]
 git = "https://github.com/goffrie/plex"
+
+[dependencies.repl]
+git = "https://github.com/rustyhorde/repl"
