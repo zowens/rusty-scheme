@@ -14,7 +14,6 @@ enum Value_<'a> {
     Atom(Atom),
     Closure(Closure<'a>),
     Cons(Box<Value_<'a>>, Box<Value_<'a>>),
-    Bottom,
 }
 
 impl<'a> Value_<'a> {
@@ -23,65 +22,98 @@ impl<'a> Value_<'a> {
             Value_::Atom(a) => Value::Atom(a),
             Value_::Closure(_) => Value::Closure,
             Value_::Cons(a, d) => Value::Cons(box a.to_value(), box d.to_value()),
-            Value_::Bottom => Value::Bottom,
         }
     }
 }
 
-fn eval<'a>(exp: &'a Expr, env: Env<'a>) -> Value_<'a> {
+fn eval<'a>(exp: &'a Expr, env: Env<'a>) -> Result<Value_<'a>, String> {
     match exp {
-        &Expr::Atom(ref v) => Value_::Atom(v.clone()),
-        &Expr::Var(ref n) => env.find(n).expect(&format!("unexpected var: {}", n)),
-        &Expr::Lambda(ref arg, ref body) => Value_::Closure(Closure { arg: arg, body: body, env: env }),
-        &Expr::IsZero(ref body) => match eval(body, env.clone()) {
-            Value_::Atom(Atom::Int(v)) => Value_::Atom(Atom::Boolean(v == 0)),
-            _ => Value_::Bottom,
+        &Expr::Atom(ref v) => Ok(Value_::Atom(v.clone())),
+        &Expr::Var(ref n) => env.find(n).ok_or(format!("unexpected var {}", n)),
+        &Expr::Lambda(ref arg, ref body) => Ok(Value_::Closure(Closure { arg: arg, body: body, env: env })),
+        &Expr::IsZero(ref body) => {
+            let v = try!(eval(body, env.clone()));
+            match v {
+                Value_::Atom(Atom::Int(v)) => Ok(Value_::Atom(Atom::Boolean(v == 0))),
+                v  => Err(format!("zero?: invalid argument {}", v.to_value())),
+            }
         },
-        &Expr::If(ref cond, ref c, ref a) => match eval(cond, env.clone()) {
-            Value_::Atom(Atom::Boolean(true)) => eval(c, env.clone()),
-            Value_::Atom(Atom::Boolean(false)) => eval(a, env.clone()),
-            _ => Value_::Bottom,
+        &Expr::If(ref cond, ref c, ref a) => {
+            let v = try!(eval(cond, env.clone()));
+            match v {
+                Value_::Atom(Atom::Boolean(false)) => eval(a, env.clone()),
+                _ => eval(c, env.clone()),
+            }
         },
-        &Expr::BinOp(BinOp::Plus, ref a, ref b) => match (eval(a, env.clone()), eval(b, env.clone())) {
-            (Value_::Atom(Atom::Int(av)), Value_::Atom(Atom::Int(bv))) => Value_::Atom(Atom::Int(av+bv)),
-            _ => Value_::Bottom,
+        &Expr::BinOp(BinOp::Plus, ref a, ref b) => {
+            let av = try!(eval(a, env.clone()));
+            let bv = try!(eval(b, env.clone()));
+            match (av, bv) {
+                (Value_::Atom(Atom::Int(av)), Value_::Atom(Atom::Int(bv))) => Ok(Value_::Atom(Atom::Int(av+bv))),
+                (av, bv) => Err(format!("attempt to add {} and {}", bv.to_value(), av.to_value())),
+            }
         },
-        &Expr::BinOp(BinOp::Mult, ref a, ref b) => match (eval(a, env.clone()), eval(b, env.clone())) {
-            (Value_::Atom(Atom::Int(av)), Value_::Atom(Atom::Int(bv))) => Value_::Atom(Atom::Int(av*bv)),
-            _ => Value_::Bottom,
+        &Expr::BinOp(BinOp::Mult, ref a, ref b) => {
+            let av = try!(eval(a, env.clone()));
+            let bv = try!(eval(b, env.clone()));
+            match (av, bv) {
+                (Value_::Atom(Atom::Int(av)), Value_::Atom(Atom::Int(bv))) => Ok(Value_::Atom(Atom::Int(av*bv))),
+                (av, bv) => Err(format!("attempt to multiply {} and {}", bv.to_value(), av.to_value())),
+            }
         },
-        &Expr::BinOp(BinOp::Sub, ref a, ref b) => match (eval(a, env.clone()), eval(b, env.clone())) {
-            (Value_::Atom(Atom::Int(av)), Value_::Atom(Atom::Int(bv))) => Value_::Atom(Atom::Int(av-bv)),
-            _ => Value_::Bottom,
+        &Expr::BinOp(BinOp::Sub, ref a, ref b) => {
+            let av = try!(eval(a, env.clone()));
+            let bv = try!(eval(b, env.clone()));
+            match (av, bv) {
+                (Value_::Atom(Atom::Int(av)), Value_::Atom(Atom::Int(bv))) => Ok(Value_::Atom(Atom::Int(av-bv))),
+                (av, bv) => Err(format!("attempt to subtract {} from {}", bv.to_value(), av.to_value())),
+            }
         },
-        &Expr::App(ref rator, ref rand) => match (eval(rator, env.clone()), eval(rand, env.clone())) {
-            (Value_::Closure(c), v) => eval(c.body, c.env.extend_env(c.arg, v)),
-            _ => Value_::Bottom,
+        &Expr::App(ref rator, ref rand) => {
+            let ratorv = try!(eval(rator, env.clone()));
+            let randv = try!(eval(rand, env.clone()));
+            match (ratorv, randv) {
+                (Value_::Closure(c), v) => eval(c.body, c.env.extend_env(c.arg, v)),
+                (v, _) => Err(format!("attempt to apply non-procedure {}", v.to_value())),
+            }
         },
-        &Expr::Cons(ref a, ref d) => Value_::Cons(box eval(a, env.clone()), box eval(d, env.clone())),
-        &Expr::Car(ref c) => match eval(c, env.clone()) {
-            Value_::Cons(a, _) => *a,
-            _ => Value_::Bottom,
+        &Expr::Cons(ref a, ref d) => {
+            let av = try!(eval(a, env.clone()));
+            let dv = try!(eval(d, env.clone()));
+            Ok(Value_::Cons(box av, box dv))
         },
-        &Expr::Cdr(ref c) => match eval(c, env.clone()) {
-            Value_::Cons(_, d) => *d,
-            _ => Value_::Bottom,
+        &Expr::Car(ref c) => {
+            let p = try!(eval(c, env.clone()));
+            match p {
+                Value_::Cons(a, _) => Ok(*a),
+                p => Err(format!("attempt to apply car to non-pair {}", p.to_value())),
+            }
+        },
+        &Expr::Cdr(ref c) => {
+            let p = try!(eval(c, env.clone()));
+            match p {
+                Value_::Cons(_, d) => Ok(*d),
+                p => Err(format!("attempt to apply car to non-pair {}", p.to_value())),
+            }
         },
         &Expr::Let(ref var, ref binding, ref body) => {
-            let bind_val = eval(binding, env.clone());
+            let bind_val = try!(eval(binding, env.clone()));
             eval(body, env.extend_env(var, bind_val))  
         },
-        &Expr::Letrec(ref var, ref binding, ref body) => match eval(binding, env.clone()) {
-            Value_::Closure(c) => eval(body, env.extend_env_rec(var, c.clone())),
-            v => eval(body, env.extend_env(var, v)),
+        &Expr::Letrec(ref var, ref binding, ref body) => {
+            let bindv = try!(eval(binding, env.clone()));
+            match bindv {
+                Value_::Closure(c) => eval(body, env.extend_env_rec(var, c.clone())),
+                v => eval(body, env.extend_env(var, v)),
+            }
         },
         //_ => Value_::Bottom,
     }
 }
 
-pub fn interp<'a>(exp: &'a Expr) -> Value {
+pub fn interp<'a>(exp: &'a Expr) -> Result<Value, String> {
     let e = empty_env();
-    eval(exp, e).to_value()
+    eval(exp, e).map(|v| v.to_value())
 }
 
 

@@ -36,6 +36,7 @@ enum Cmd {
 
 enum ReplErr {
     ReadErr(&'static str),
+    EvalErr(String),
     // TODO: evaluation error
 }
 
@@ -43,6 +44,7 @@ impl fmt::Display for ReplErr {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             ReplErr::ReadErr(ref x) => write!(f, "invalid expression: {}", x),
+            ReplErr::EvalErr(ref x) => write!(f, "Exception: {}", x),
         }
     }
 }
@@ -68,7 +70,10 @@ impl Repl<Cmd,ReplErr,SchemeReplEnv> for SchemeRepl {
     fn eval(&self, cmd: Cmd, _: &SchemeReplEnv) -> ReplResult {
         match cmd {
             Cmd::Exit => Ok(Cmd::Exit),
-            Cmd::Expression(e) => Ok(Cmd::EvalResult(super::interp::interp(&e))),
+            Cmd::Expression(e) => match super::interp::interp(&e) {
+                Ok(v) => Ok(Cmd::EvalResult(v)),
+                Err(err) => Err(ReplErr::EvalErr(err)),
+            },
             _ => unreachable!(),
         }
     }

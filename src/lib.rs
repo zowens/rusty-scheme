@@ -38,7 +38,6 @@ pub enum Value {
     Atom(Atom),
     Cons(Box<Value>, Box<Value>),
     Closure,
-    Bottom,
 }
 
 impl fmt::Display for Value {
@@ -51,7 +50,6 @@ impl fmt::Display for Value {
             // TODO: recursive list repr
             &Value::Cons(ref a, ref b) => write!(f, "({} . {})", a, b),
             &Value::Closure => write!(f, "#<closure>"),
-            &Value::Bottom => write!(f, "#<TYPE ERROR>"),
         }
     }
 }
